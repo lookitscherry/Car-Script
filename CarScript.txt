@@ -1,0 +1,107 @@
+local function SynapseFail()
+    game.Players.LocalPlayer:Kick("Executor doesnt support Synapse Functions (SF)")
+end
+local gui = Instance.new("ScreenGui")
+gui.Parent = game.Players.LocalPlayer.PlayerGui
+local downloadingtext = Instance.new("TextLabel")
+downloadingtext.Parent = gui
+downloadingtext.Text = "Downloading Files (might take a while)"
+if _G.DeleteFilesOnRun then
+    downloadingtext.Text = "Downloading Files because you have deleted on run (might take a while)"
+end
+downloadingtext.AnchorPoint = Vector2.new(0.5, 0.5)
+downloadingtext.Position = UDim2.new(0.5, 0, 0.5, 0)
+downloadingtext.TextSize = 20
+downloadingtext.TextColor3 = Color3.fromRGB(255, 255, 255) 
+downloadingtext.BackgroundTransparency = 1 
+downloadingtext.TextStrokeTransparency = 0
+local function downloadfiles()
+    if _G.DeleteFilesOnRun == true then
+        if isfolder("Car") then
+            delfolder("Car")
+        end
+        if isfile("Car/DrivingSound.mp3") then
+            delfile("Car/DrivingSound.mp3")
+        end
+        if isfile("Car/CarExplosion.mp3") then
+            delfile("Car/CarExplosion.mp3")
+        end
+    end
+    if not isfolder("Car") then
+        makefolder("Car")
+    end
+    if not isfile("Car/DrivingSound.mp3") then
+        writefile("Car/DrivingSound.mp3", game:HttpGet("https://github.com/lookitscherry/Car-Script/raw/refs/heads/main/CarSound.mp3", true))
+    end
+    if not isfile("Car/CarExplosion.mp3") then
+        writefile("Car/CarExplosion.mp3", game:HttpGet("https://github.com/lookitscherry/Car-Script/raw/refs/heads/main/CarExplosion.mp3", true))
+    end
+end
+-- this piece of code is really stupid, it just assumes you're using an computer device.
+if _G.EnableMouseShiftlock then
+    if game.UserInputService.TouchEnabled then
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-FE-Mobile-Shiftlock-Official-19126"))()
+    end
+end
+-- end of piece of code
+local DownloadSuccess, DownloadResults = pcall(downloadfiles)
+if not DownloadSuccess then
+    SynapseFail()
+else
+    downloadingtext:Destroy()
+end
+local CarSound = Instance.new("Sound")
+CarSound.SoundId = getcustomasset("Car/DrivingSound.mp3")
+CarSound.Parent = game.Players.LocalPlayer.Character.HumanoidRootPart
+CarSound.Looped = true
+if _G.EnableSound == false then
+    CarSound.Volume = 0
+end
+CarSound:Play()
+local function Crash()
+    if not _G.DontPlayExplosionSound then
+        local CrashSound = Instance.new("Sound")
+        CrashSound.SoundId = getcustomasset("Car/CarExplosion.mp3")
+        CrashSound.Parent = game.Players.LocalPlayer.Character.HumanoidRootPart
+        CrashSound.Looped = false
+        CrashSound:Play()
+        if _G.EnableSound == false then
+            CrashSound.Volume = 0
+        end
+        if _G.EnableExplosionEffect then
+            local explosion = Instance.new("Explosion")
+            explosion.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+            explosion.BlastRadius = 10 
+            explosion.BlastPressure = 500
+            explosion.Parent = game.Workspace
+            explosion.Hit:Connect(function(hit)
+                if hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= game.Players.LocalPlayer.Character then
+                    explosion.Destroy()
+                end
+            end)
+        end
+    end
+end
+local plr = game.Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hp = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
+if _G.DisableMovement then
+    hp.WalkSpeed = 0.01
+end
+while true do
+    if _G.EnableSitting then
+        game.Players.LocalPlayer.Character.Humanoid.Sit = true
+    end
+    hrp.CFrame = hrp.CFrame - hrp.CFrame.LookVector * -_G.DrivingSpeed
+    task.wait(0.01)
+    if _G.EnableKillingCrash then
+        hrp.Touched:Connect(function(hit)
+            if hit.Parent:FindFirstChild("Humanoid") and hit.Parent ~= char then
+                hp.Health = 0
+                CarSound:Destroy()
+                Crash()
+            end
+        end)
+    end
+end
